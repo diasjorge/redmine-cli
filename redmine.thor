@@ -38,6 +38,18 @@ class Redmine < Thor
     end
   end
 
+  desc "show [ticket]", "Display information of a ticket"
+  def show(ticket)
+    issue = Issue.find(ticket)
+
+    shell.print_wrapped "#{link_to_issue(issue.id)} - #{issue.status.name}"
+    shell.print_wrapped "Subject: #{issue.subject}"
+    shell.print_wrapped issue.description, :ident => 2
+
+  rescue ActiveResource::ResourceNotFound
+    say "No ticket with number: #{ticket}"
+  end
+
   no_tasks do
     def link_to_issue(id)
       "#{Issue.config.url}/issues/#{id}"
