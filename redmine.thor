@@ -17,7 +17,6 @@ class Issue < ActiveResource::Base
 end
 
 class Redmine < Thor
-
   desc "list", "List all issues for the user"
   method_option :assigned_to, :default => "me",  :aliases => "-at", :desc => "id of person the ticket is assigned to"
   method_option :all,         :type => :boolean, :aliases => "-a",  :desc => "list all tickets"
@@ -38,7 +37,7 @@ class Redmine < Thor
     end
   end
 
-  desc "show [ticket]", "Display information of a ticket"
+  desc "show TICKET", "Display information of a ticket"
   def show(ticket)
     issue = Issue.find(ticket)
 
@@ -48,6 +47,27 @@ class Redmine < Thor
 
   rescue ActiveResource::ResourceNotFound
     say "No ticket with number: #{ticket}"
+  end
+
+  method_option :assigned_to, :aliases => "-at", :desc => "id of person the ticket is assigned to"
+  method_option :status,      :aliases => "-s",  :desc => "status for ticket"
+  method_option :project,     :aliases => "-p",  :desc => "project for the ticket"
+  desc "new SUBJECT [DESCRIPTION]", "Create a new ticket"
+  def new(subject, description="")
+    attributes = {
+      :subject => subject,
+      :description => description,
+      :project_id => options.project || Issue.config.default_project_id
+    }
+
+    attributes[:assigned_to_id] = options.assigned_to if options.assigned_to
+    attributes[:status_id]      = options.status      if options.status
+
+    issue = Issue.create(attributes)
+
+    say "Created ticket: #{link_to_issue(issue.id)}"
+  rescue ActiveResource::ResourceNotFound
+    say "Could not create ticket with: #{attributes.inspect}"
   end
 
   no_tasks do
