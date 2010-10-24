@@ -46,7 +46,7 @@ class Redmine < Thor
     shell.print_wrapped issue.description, :ident => 2
 
   rescue ActiveResource::ResourceNotFound
-    say "No ticket with number: #{ticket}"
+    say "No ticket with number: #{ticket}", :red
   end
 
   method_option :assigned_to, :aliases => "-at", :desc => "id of person the ticket is assigned to"
@@ -65,9 +65,9 @@ class Redmine < Thor
 
     issue = Issue.create(attributes)
 
-    say "Created ticket: #{link_to_issue(issue.id)}"
+    say "Created ticket: #{link_to_issue(issue.id)}", :green
   rescue ActiveResource::ResourceNotFound
-    say "Could not create ticket with: #{attributes.inspect}"
+    say "Could not create ticket with: #{attributes.inspect}", :red
   end
 
   no_tasks do
