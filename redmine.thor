@@ -19,8 +19,16 @@ end
 class Redmine < Thor
 
   desc "list", "List all issues for the user"
+  method_option :assigned_to, :default => "me",  :aliases => "-at", :desc => "id of person the ticket is assigned to"
+  method_option :all,         :type => :boolean, :aliases => "-a",  :desc => "list all tickets"
   def list
-    collection = Issue.all
+    params = {}
+
+    unless options.all
+      params[:assigned_to_id] = options.assigned_to
+    end
+
+    collection = Issue.all(:params => params)
 
     issues = collection.collect { |issue| [link_to_issue(issue.id), issue.subject, issue.status.name] }
 
