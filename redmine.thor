@@ -7,7 +7,7 @@ class Issue < ActiveResource::Base
   def self.config
     @config ||= OpenStruct.new(YAML.load_file(File.expand_path("~/.redmine")))
   rescue Errno::ENOENT
-    say "You need to create the file .redmine in your home with your username, password and url"
+    puts "You need to create the file .redmine in your home with your username, password and url"
     exit(1)
   end
 
