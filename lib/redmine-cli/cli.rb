@@ -4,14 +4,12 @@ module Redmine
       desc "list", "List all issues for the user"
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
-      method_option :all,         :type => :boolean, :desc => "list all tickets"
-
       method_option :std_output,  :aliases => "-o",  :type => :boolean,
                     :desc => "special output for STDOUT (useful for updates)"
       def list
         params = {}
 
-        params[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to && !options.all
+        params[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to
 
         params[:status_id] = map_status(options.status) if options.status
 
