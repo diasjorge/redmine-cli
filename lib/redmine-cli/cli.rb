@@ -79,6 +79,12 @@ module Redmine
         tickets.collect { |ticket| Thread.new { update_ticket(ticket, options) } }.each(&:join)
       end
 
+      desc "install [URL][USERNAME][PASSWORD]", "Generates a recipe scaffold"
+      def install(url = "localhost:3000", username = "admin", password = "admin")
+        url = "http://#{url}" unless url =~ /\Ahttp/
+        Redmine::Cli::Generators::Install.start([url, username, password])
+      end
+
       no_tasks do
         def link_to_issue(id)
           "#{Issue.config.url}/issues/#{id}"

@@ -1,0 +1,12 @@
+url: "<%= url %>"
+username: "<%= username %>"
+password: "<%= password %>"
+user_mappings:
+  "admin": 1
+status_mappings:
+  "new": 1
+  "in-progress": 2
+  "resolved": 3
+  "feedback": 4
+  "closed": 5
+  "rejected": 6
