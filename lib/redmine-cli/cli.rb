@@ -23,7 +23,7 @@ module Redmine
             print_table(issues)
           end
         else
-          say collection.collect(&:id).join(",")
+          say collection.collect(&:id).join(" ")
         end
       end
 
@@ -60,16 +60,14 @@ module Redmine
         say e.message, :red
       end
 
-      method_option :tickets,     :aliases => "-l",  :desc => "list of tickets"
+      method_option :tickets,     :aliases => "-l",  :desc => "list of tickets", :type => :array
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
       method_option :subject,     :aliases => "-t",  :desc => "subject for ticket (title)"
       method_option :description, :aliases => "-d",  :desc => "description for ticket"
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
       desc "update [TICKETS]", "Update tickets"
-      def update(tickets = "")
+      def update(*tickets)
         tickets = options.tickets if tickets.blank? && options.tickets.present?
-
-        tickets = tickets.split(",")
 
         if tickets.empty?
           say "No tickets to update", :red
@@ -79,10 +77,21 @@ module Redmine
         tickets.collect { |ticket| Thread.new { update_ticket(ticket, options) } }.each(&:join)
       end
 
-      desc "install [URL][USERNAME][PASSWORD]", "Generates a recipe scaffold"
-      def install(url = "localhost:3000", username = "admin", password = "admin")
+      desc "install [URL][USERNAME]", "Generates a default configuration file"
+      method_option :test, :type => :boolean
+      def install(url = "localhost:3000", username = "")
         url = "http://#{url}" unless url =~ /\Ahttp/
-        Redmine::Cli::Generators::Install.start([url, username, password])
+
+        if username.blank?
+          username = ask("Username?")
+        end
+
+        password = ask_password("Password?")
+
+        arguments = [url, username, password]
+        arguments.concat(["--test"]) if options.test
+
+        Redmine::Cli::Generators::Install.start(arguments)
       end
 
       no_tasks do
@@ -141,6 +150,12 @@ module Redmine
           say "Could not find ticket: #{ticket}", :red
         end
 
+        def ask_password(prompt)
+          system "stty -echo"
+          password = ask(prompt)
+          system "stty echo"
+          password
+        end
       end
     end
   end

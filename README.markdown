@@ -36,7 +36,7 @@
 
 - Updating multiple tickets
 
-    redmine update 2,3,4 --assigned_to johndoe
+    redmine update 2 3 4 --assigned_to johndoe
 
 - Updating all tickets for a list
 
