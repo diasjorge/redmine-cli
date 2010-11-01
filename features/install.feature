@@ -15,6 +15,7 @@ Feature: Install configuration file
       url: "http://example.com"
       username: "user"
       password: "pass"
+      default_project_id: 1
       user_mappings:
         "admin": 1
       status_mappings:

@@ -1,3 +1,7 @@
+require 'thor'
+require 'redmine-cli/issue'
+require 'redmine-cli/generators/install'
+
 module Redmine
   module Cli
     class CLI < Thor

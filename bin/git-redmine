@@ -4,6 +4,6 @@ require 'pathname'
 lib = Pathname.new(__FILE__).dirname.join('..', 'lib').expand_path
 $LOAD_PATH.unshift lib.to_s
 
-require 'redmine-cli/cli'
+require 'redmine-cli/git'
 
-Redmine::Cli::CLI.start
+Redmine::Cli::Git.start

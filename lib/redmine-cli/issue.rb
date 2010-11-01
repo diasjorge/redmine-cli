@@ -1,3 +1,6 @@
+require 'thor'
+require 'active_resource'
+
 module Redmine
   module Cli
     class Issue < ActiveResource::Base
