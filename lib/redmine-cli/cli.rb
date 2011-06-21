@@ -1,4 +1,5 @@
 require 'thor'
+require 'redmine-cli/config'
 require 'redmine-cli/issue'
 require 'redmine-cli/generators/install'
 
@@ -48,7 +49,7 @@ module Redmine
         params =
           Thor::CoreExt::HashWithIndifferentAccess.new(:subject => subject,
                                                        :description => description,
-                                                       :project => Issue.config.default_project_id)
+                                                       :project => Redmine::Cli::config.default_project_id)
         params.merge!(options)
 
         unless params.project
@@ -81,7 +82,7 @@ module Redmine
         tickets.collect { |ticket| Thread.new { update_ticket(ticket, options) } }.each(&:join)
       end
 
-      desc "install [URL][USERNAME]", "Generates a default configuration file"
+      desc "install [URL] [USERNAME]", "Generates a default configuration file"
       method_option :test, :type => :boolean
       def install(url = "localhost:3000", username = "")
         url = "http://#{url}" unless url =~ /\Ahttp/
@@ -100,7 +101,7 @@ module Redmine
 
       no_tasks do
         def link_to_issue(id)
-          "#{Issue.config.url}/issues/#{id}"
+          "#{Redmine::Cli::config.url}/issues/#{id}"
         end
 
         def ticket_attributes(options)
@@ -132,7 +133,7 @@ module Redmine
         def get_mapping(mapping, value)
           return value if value.to_i != 0
 
-          if Issue.config[mapping].nil? || (mapped = Issue.config[mapping][value]).nil?
+          if Redmine::Cli::config[mapping].nil? || (mapped = Redmine::Cli::config[mapping][value]).nil?
             say "No #{mapping} for #{value}", :red
             exit 1
           end
