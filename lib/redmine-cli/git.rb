@@ -1,5 +1,5 @@
 require 'thor'
-require 'redmine-cli/issue'
+require 'redmine-cli/resources'
 
 module Redmine
   module Cli

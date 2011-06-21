@@ -1,6 +1,6 @@
 require 'thor'
 require 'redmine-cli/config'
-require 'redmine-cli/issue'
+require 'redmine-cli/resources'
 require 'redmine-cli/generators/install'
 
 module Redmine
