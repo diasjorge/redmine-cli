@@ -2,6 +2,7 @@ require 'thor'
 require 'redmine-cli/config'
 require 'redmine-cli/resources'
 require 'redmine-cli/generators/install'
+require 'yaml'
 
 module Redmine
   module Cli
@@ -9,6 +10,7 @@ module Redmine
       desc "list", "List all issues for the user"
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
+      method_option :project,     :aliases => "-p",  :desc => "project id"
       method_option :std_output,  :aliases => "-o",  :type => :boolean,
                     :desc => "special output for STDOUT (useful for updates)"
       def list
@@ -17,6 +19,8 @@ module Redmine
         params[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to
 
         params[:status_id] = map_status(options.status) if options.status
+
+        params[:project_id] = map_project(options.project) if options.project
 
         collection = Issue.all(:params => params)
 
@@ -130,12 +134,51 @@ module Redmine
           get_mapping(:status_mappings, status_name)
         end
 
+        def map_project(project_name)
+          get_mapping(:project_mappings, project_name)
+        end
+
+        def update_mapping_cache
+          say 'Updating mapping cache...', :yellow
+          # TODO: Updating user mapping requries Redmine 1.1+
+          users = User.all.collect { |user| [ user.login, user.id ] }
+          projects = Project.all.collect { |project| [ project.identifier, project.id ] }
+
+          # TODO: Need to determine where to place cache file based on
+          #       config file location.
+          File.open(File.expand_path('~/.redmine_cache'), 'w') do |out|
+            YAML.dump({
+              :user_mappings => Hash[users],
+              :project_mappings => Hash[projects],
+            }, out)
+          end
+        end
+
+        def get_mapping_from_cache(mapping, value)
+          begin
+            if Redmine::Cli::cache[mapping].nil? || (mapped = Redmine::Cli::cache[mapping][value]).nil?
+              return false
+            end
+            return mapped
+          rescue
+            # We need to recover here from any error that could happen
+            # in case the cache is corrupted.
+            return false
+          end
+        end
+
         def get_mapping(mapping, value)
           return value if value.to_i != 0
 
           if Redmine::Cli::config[mapping].nil? || (mapped = Redmine::Cli::config[mapping][value]).nil?
-            say "No #{mapping} for #{value}", :red
-            exit 1
+            if !(mapped = get_mapping_from_cache(mapping, value))
+              update_mapping_cache
+
+              if !(mapped = get_mapping_from_cache(mapping, value))
+                say "No #{mapping} for #{value}", :red
+                exit 1
+              end
+            end
           end
 
           return mapped

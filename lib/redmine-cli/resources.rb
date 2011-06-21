@@ -1,13 +1,31 @@
 require 'thor'
 require 'active_resource'
+require 'active_support/core_ext/object/with_options'
 require 'redmine-cli/config'
 
 module Redmine
   module Cli
-    class Issue < ActiveResource::Base
+    class BaseResource < ActiveResource::Base
       self.site = Redmine::Cli::config.url
       self.user = Redmine::Cli::config.username
       self.password = Redmine::Cli::config.password
+
+      class << self
+        # HACK: Redmine API isn't ActiveResource-friendly out of the box, so
+        # we need to pass nometa=1 to all requests since we don't care about
+        # the metadata that gets passed back in the top level attributes.
+        def find(*arguments)
+          arguments[1] = arguments[1] || {}
+          arguments[1][:params] = arguments[1][:params] || {}
+          arguments[1][:params][:nometa] = 1
+
+          super
+        end
+      end
     end
+
+    class Issue   < BaseResource; end
+    class User    < BaseResource; end
+    class Project < BaseResource; end
   end
 end
