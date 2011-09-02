@@ -25,11 +25,17 @@ module Redmine
         collection = Issue.all(:params => params)
 
         unless options.std_output
-          issues = collection.collect { |issue| [link_to_issue(issue.id), issue.subject, issue.status.name] }
+          collection.sort! {|i,j| i.status.id <=> j.status.id }
+          issues = collection.collect do |issue|
+            assignee = ""
+            assignee = issue.assigned_to.name if issue.respond_to?(:assigned_to)
+            ["#{issue.id}", issue.status.name, issue.priority.name, assignee, issue.subject]
+          end
 
           if issues.any?
-            issues.insert(0, ["URL", "Subject", "Status"])
+            issues.insert(0, ["Id", "Status", "Priority", "Assignee", "Status"])
             print_table(issues)
+            say "#{collection.count} issues - #{link_to_project(params[:project_id])}", :yellow
           end
         else
           say collection.collect(&:id).join(" ")
@@ -106,6 +112,14 @@ module Redmine
       no_tasks do
         def link_to_issue(id)
           "#{Redmine::Cli::config.url}/issues/#{id}"
+        end
+
+        def link_to_project(name = nil)
+          if name
+            "#{Redmine::Cli::config.url}/projects/#{name}/issues"
+          else
+            "#{Redmine::Cli::config.url}"
+          end
         end
 
         def ticket_attributes(options)
