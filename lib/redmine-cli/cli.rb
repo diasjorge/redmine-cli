@@ -172,6 +172,7 @@ module Redmine
         def update_mapping_cache
           say 'Updating mapping cache...', :yellow
           # TODO: Updating user mapping requries Redmine 1.1+
+          users = []
           begin
             users = User.fetch_all.collect { |user| [ user.login, user.id ] }
           rescue Exception => e
@@ -185,7 +186,6 @@ module Redmine
               priorities[issue.priority.name] = issue.priority.id if issue.priority
               status[issue.status.name] = issue.status.id if issue.status
           end
-
 
           # TODO: Need to determine where to place cache file based on
           #       config file location.
