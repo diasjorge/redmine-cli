@@ -44,7 +44,7 @@ module Redmine
 
       desc "projects", "Lists all projects"
       def projects
-          projects = Project.all(default_parameters).sort {|i,j| i.name <=> j.name}.collect { |project| [ project.id, project.identifier, project.name ] }
+          projects = Project.all(:params => default_parameters).sort {|i,j| i.name <=> j.name}.collect { |project| [ project.id, project.identifier, project.name ] }
           if projects.any?
             projects.insert(0, ["Id", "Key", "Name"])
             print_table(projects)
@@ -166,8 +166,8 @@ module Redmine
         def update_mapping_cache
           say 'Updating mapping cache...', :yellow
           # TODO: Updating user mapping requries Redmine 1.1+
-          users = User.all(default_parameters).collect { |user| [ user.login, user.id ] }
-          projects = Project.all(default_parameters).collect { |project| [ project.identifier, project.id ] }
+          users = User.all(:params => default_parameters).collect { |user| [ user.login, user.id ] }
+          projects = Project.all(:params => default_parameters).collect { |project| [ project.identifier, project.id ] }
 
           # TODO: Need to determine where to place cache file based on
           #       config file location.
