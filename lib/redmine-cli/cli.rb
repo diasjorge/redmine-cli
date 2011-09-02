@@ -14,7 +14,7 @@ module Redmine
       method_option :std_output,  :aliases => "-o",  :type => :boolean,
                     :desc => "special output for STDOUT (useful for updates)"
       def list
-        params = {}
+        params = default_parameters
 
         params[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to
 
@@ -155,8 +155,8 @@ module Redmine
         def update_mapping_cache
           say 'Updating mapping cache...', :yellow
           # TODO: Updating user mapping requries Redmine 1.1+
-          users = User.all.collect { |user| [ user.login, user.id ] }
-          projects = Project.all.collect { |project| [ project.identifier, project.id ] }
+          users = User.all(default_parameters).collect { |user| [ user.login, user.id ] }
+          projects = Project.all(default_parameters).collect { |project| [ project.identifier, project.id ] }
 
           # TODO: Need to determine where to place cache file based on
           #       config file location.
@@ -217,6 +217,10 @@ module Redmine
           password = ask(prompt)
           system "stty echo"
           password
+        end
+
+        def default_parameters
+          {:limit => 100}
         end
       end
     end
