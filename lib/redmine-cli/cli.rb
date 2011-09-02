@@ -42,6 +42,17 @@ module Redmine
         end
       end
 
+      desc "projects", "Lists all projects"
+      def projects
+          projects = Project.all(default_parameters).sort {|i,j| i.name <=> j.name}.collect { |project| [ project.id, project.identifier, project.name ] }
+          if projects.any?
+            projects.insert(0, ["Id", "Key", "Name"])
+            print_table(projects)
+            say "#{projects.count} projects - #{link_to_project}", :yellow
+          end
+          
+      end
+
       desc "show TICKET", "Display information of a ticket"
       def show(ticket)
         issue = Issue.find(ticket)
