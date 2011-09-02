@@ -172,7 +172,11 @@ module Redmine
         def update_mapping_cache
           say 'Updating mapping cache...', :yellow
           # TODO: Updating user mapping requries Redmine 1.1+
-          users = User.fetch_all.collect { |user| [ user.login, user.id ] }
+          begin
+            users = User.fetch_all.collect { |user| [ user.login, user.id ] }
+          rescue Exception => e
+            say "Failed to fetch users: #{e}", :red
+          end
           projects = Project.fetch_all.collect { |project| [ project.identifier, project.id ] }
 
           priorities = {}
