@@ -21,6 +21,20 @@ module Redmine
 
           super
         end
+
+        def fetch_all(params = {})
+          limit  = 100
+          offset = 0
+
+          resources = []
+
+          while((fetched_resources = self.all(:params => params.merge({:limit => limit, :offset => offset}))).any?)
+            resources += fetched_resources
+            offset    += limit
+          end
+
+          resources
+        end
       end
     end
 
