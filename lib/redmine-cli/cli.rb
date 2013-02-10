@@ -8,6 +8,7 @@ module Redmine
       desc "list", "List all issues for the user"
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
+      method_option :tracker,      :aliases => "-T",  :desc => "id or name of tracker for ticket"
       method_option :std_output,  :aliases => "-o",  :type => :boolean,
                     :desc => "special output for STDOUT (useful for updates)"
       def list
@@ -17,13 +18,15 @@ module Redmine
 
         params[:status_id] = map_status(options.status) if options.status
 
+        params[:tracker_id] = map_tracker(options.tracker) if options.tracker
+
         collection = Issue.all(:params => params)
 
         unless options.std_output
-          issues = collection.collect { |issue| [link_to_issue(issue.id), issue.subject, issue.status.name] }
+          issues = collection.collect { |issue| [link_to_issue(issue.id), issue.subject, issue.status.name, issue.tracker.name] }
 
           if issues.any?
-            issues.insert(0, ["URL", "Subject", "Status"])
+            issues.insert(0, ["URL", "Subject", "Status", "Tracker"])
             print_table(issues)
           end
         else
@@ -66,6 +69,7 @@ module Redmine
 
       method_option :tickets,     :aliases => "-l",  :desc => "list of tickets", :type => :array
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
+      method_option :tracker,     :aliases => "-T",  :desc => "id or name of tracker for ticket"
       method_option :subject,     :aliases => "-t",  :desc => "subject for ticket (title)"
       method_option :description, :aliases => "-d",  :desc => "description for ticket"
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
@@ -111,6 +115,7 @@ module Redmine
           attributes[:project_id]     = options.project               if options.project.present?
           attributes[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to.present?
           attributes[:status_id]      = options.status                if options.status.present?
+          attributes[:tracker_id]     = options.tracker               if options.tracker.present?
 
           attributes
         end
@@ -127,6 +132,10 @@ module Redmine
 
         def map_status(status_name)
           get_mapping(:status_mappings, status_name)
+        end
+
+        def map_tracker(tracker_name)
+          get_mapping(:tracker_mappings, tracker_name)
         end
 
         def get_mapping(mapping, value)

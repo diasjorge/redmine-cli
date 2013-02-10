@@ -11,3 +11,7 @@ status_mappings:
   "feedback": 4
   "closed": 5
   "rejected": 6
+tracker_mappings:
+  "bug" : 1
+  "feature": 2
+
