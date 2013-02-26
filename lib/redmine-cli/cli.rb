@@ -11,6 +11,7 @@ module Redmine
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
       method_option :project,     :aliases => "-p",  :desc => "project id"
+      method_option :version,     :aliases => "-v",  :desc => "the target version"
       method_option :std_output,  :aliases => "-o",  :type => :boolean,
                     :desc => "special output for STDOUT (useful for updates)"
       def list
@@ -29,11 +30,16 @@ module Redmine
           issues = collection.collect do |issue|
             assignee = ""
             assignee = issue.assigned_to.name if issue.respond_to?(:assigned_to)
-            ["#{issue.id}", issue.status.name, issue.priority.name, assignee, issue.subject]
+            version = issue.fixed_version.name if issue.respond_to?(:fixed_version)
+
+            # Hack, because I don't feel like spending much time on this
+            next unless version = options.version
+
+            ["#{issue.id}", issue.status.name, issue.priority.name, version, assignee, issue.subject]
           end
 
           if issues.any?
-            issues.insert(0, ["Id", "Status", "Priority", "Assignee", "Status"])
+            issues.insert(0, ["Id", "Status", "Priority", "Version", "Assignee", "Status"])
             print_table(issues)
             say "#{collection.count} issues - #{link_to_project(params[:project_id])}", :yellow
           end
