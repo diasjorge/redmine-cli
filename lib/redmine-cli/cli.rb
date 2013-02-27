@@ -26,17 +26,21 @@ module Redmine
         collection = Issue.fetch_all(params)
 
         unless options.std_output
-          collection.sort! {|i,j| i.status.id <=> j.status.id }
+          # collection.sort! {|i,j| i.status.id <=> j.status.id }
+          collection.sort! {|i,j| i.priority.id <=> j.priority.id }
           issues = collection.collect do |issue|
             assignee = ""
             assignee = issue.assigned_to.name if issue.respond_to?(:assigned_to)
             version = issue.fixed_version.name if issue.respond_to?(:fixed_version)
 
             # Hack, because I don't feel like spending much time on this
-            next unless version = options.version
+            next unless version == options.version
 
-            ["#{issue.id}", issue.status.name, issue.priority.name, version, assignee, issue.subject]
+            ["#{issue.id}", issue.status.name, issue.priority.name, version, assignee, issue.subject || ""]
           end
+
+          # Clean up after ourselves
+          issues.compact!
 
           if issues.any?
             issues.insert(0, ["Id", "Status", "Priority", "Version", "Assignee", "Status"])
