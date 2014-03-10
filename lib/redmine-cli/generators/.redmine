@@ -11,3 +11,5 @@ status_mappings:
   "feedback": 4
   "closed": 5
   "rejected": 6
+list_fields:
+  - <%= list_fields.join("\n  - ") %>

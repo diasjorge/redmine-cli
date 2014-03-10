@@ -18,6 +18,8 @@
 
   This will allow to use those names with the commands instead of the ids of users or status
 
+  During install, you can select the fields that you wish to be displayed, or accept the default (url, status, subject). This list can contain custom fields.
+
 ## Use cases
 
 - Listing tickets

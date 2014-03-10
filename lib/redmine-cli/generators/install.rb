@@ -9,9 +9,10 @@ module Redmine::Cli::Generators
       File.dirname(__FILE__)
     end
 
-    argument :url,       :type => :string
-    argument :username,  :type => :string
-    argument :password,  :type => :string
+    argument :url,          :type => :string
+    argument :username,     :type => :string
+    argument :password,     :type => :string
+    argument :list_fields,  :type => :array
     class_option :test,  :type => :boolean
     def copy_configuration_file
       self.destination_root = File.expand_path("~") unless options.test

@@ -1,15 +1,19 @@
 require 'thor'
 require 'redmine-cli/issue'
+require 'redmine-cli/field'
 require 'redmine-cli/generators/install'
+require 'pp'
 
 module Redmine
   module Cli
     class CLI < Thor
+
       desc "list", "List all issues for the user"
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
       method_option :std_output,  :aliases => "-o",  :type => :boolean,
                     :desc => "special output for STDOUT (useful for updates)"
+
       def list
         params = {}
 
@@ -19,11 +23,41 @@ module Redmine
 
         collection = Issue.all(:params => params)
 
+        selected_fields = Issue.config.list_fields
+
         unless options.std_output
-          issues = collection.collect { |issue| [link_to_issue(issue.id), issue.subject, issue.status.name] }
+          # Retrieve the list of issue fields in selected_fields
+          issues = collection.collect { |issue| selected_fields.collect {| key |
+            begin
+              # If this is a built-in field for which we have a title, ref, and display method, use that.
+              field = fields.fetch(key)
+              if field.display
+                value = issue.attributes.fetch(field.ref)
+                field.display.call(value)
+              else
+                f = fields.fetch(key).ref
+                issue.attributes.fetch(f)
+              end
+            rescue IndexError
+              # Otherwise, let's look for a custom field by that name.
+              issue.attributes[:custom_fields].collect { | field | 
+                if field.attributes.fetch("name") == key
+                  field.attributes.fetch("value")
+                end
+                #TODO: If the custom field doesn't exist, then we end up returning a blank value (not an error). I guess that's OK?
+              }
+            end
+
+          }}
 
           if issues.any?
-            issues.insert(0, ["URL", "Subject", "Status"])
+            issues.insert(0, selected_fields.collect {| key |
+              begin
+                fields.fetch(key).title
+              rescue IndexError
+                key
+              end
+            })
             print_table(issues)
           end
         else
@@ -81,9 +115,9 @@ module Redmine
         tickets.collect { |ticket| Thread.new { update_ticket(ticket, options) } }.each(&:join)
       end
 
-      desc "install [URL][USERNAME]", "Generates a default configuration file"
+      desc "install [URL] [USERNAME] [FIELDS]", "Generates a default configuration file"
       method_option :test, :type => :boolean
-      def install(url = "localhost:3000", username = "")
+      def install(url = "localhost:3000", username = "", fieldcsv="")
         url = "http://#{url}" unless url =~ /\Ahttp/
 
         if username.blank?
@@ -92,15 +126,26 @@ module Redmine
 
         password = ask_password("Password?")
 
-        arguments = [url, username, password]
+        if fieldcsv.blank?
+          fieldcsv = ask("\nWhat fields should be displayed in \"redmine list\"?\n\nPossible values are: [" + fields.keys.join(", ") + "]\n\nEnter a list of comma-separated fields: ")
+        end
+
+        list_fields = fieldcsv.split(",")
+
+        arguments = [url, username, password, list_fields]
         arguments.concat(["--test"]) if options.test
 
         Redmine::Cli::Generators::Install.start(arguments)
       end
 
       no_tasks do
+
         def link_to_issue(id)
           "#{Issue.config.url}/issues/#{id}"
+        end
+
+        def status_name(status)
+           status.name
         end
 
         def ticket_attributes(options)
@@ -130,8 +175,12 @@ module Redmine
         end
 
         def get_mapping(mapping, value)
-          return value if value.to_i != 0
-
+          begin
+            return value if value.to_i != 0
+          rescue NoMethodError
+            return value.attributes.fetch("name") if value.id.to_i != 0
+          end
+          
           if Issue.config[mapping].nil? || (mapped = Issue.config[mapping][value]).nil?
             say "No #{mapping} for #{value}", :red
             exit 1
@@ -159,6 +208,30 @@ module Redmine
           password = ask(prompt)
           system "stty echo"
           password
+        end
+
+        def fields()
+          # This is a collection of built-in Redmine fields, the key by which they can be accessed, and a wrapper
+          # method that is used to display their value. Pseudo-fields can be added that use different wrapper
+          # methods to give the user flexibility over their output (see url vs. id)
+          return {
+            "url" => Field.new("URL", "id", method(:link_to_issue)),
+            "id" => Field.new("ID#", "id"),
+            "subject" => Field.new("Subject", "subject"),
+            "status" => Field.new("Status", "status", method(:status_name)),
+            "start_date" => Field.new("Start", "start_date"),
+            "estimated_hours" => Field.new("Estd", "estimated_hours"),
+            "tracker" => Field.new("Type", "tracker", method(:map_user)),
+            "priority" => Field.new("Priority", "priority", method(:map_user)),
+            "description" => Field.new("Description", "description"),
+            "assigned_to" => Field.new("Assigned To", "assigned_to", method(:map_user)),
+            "project" => Field.new("Project", "project", method(:map_user)),
+            "author" => Field.new("Author", "author", method(:map_user)),
+            "done_ratio" => Field.new("% Done", "done_ratio"),
+            "due_date" => Field.new("Due On", "due_date"),
+            "created_on" => Field.new("Created On", "created_on"),
+            "updated_on" => Field.new("Updated On", "updated_on"),
+          }
         end
       end
     end
