@@ -2,6 +2,7 @@ require 'thor'
 require 'active_resource'
 require 'active_support/core_ext/object/with_options'
 require 'redmine-cli/config'
+require 'pp'
 
 module Redmine
   module Cli
@@ -44,6 +45,10 @@ module Redmine
   end
 end
 
+
+# HACK: Redmine API isn't ActiveResource-friendly out of the box, and
+# also some versions of Redmine ignore the nometa=1 parameter. So we
+# need to manually strip out metadata that confuses ActiveResource.
 class Hash
   class << self
     alias_method :from_xml_original, :from_xml

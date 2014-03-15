@@ -15,6 +15,7 @@ module Redmine
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
       method_option :project,     :aliases => "-p",  :desc => "project id"
       method_option :version,     :aliases => "-v",  :desc => "the target version"
+      method_option :tracker,      :aliases => "-T",  :desc => "id or name of tracker for ticket"
       method_option :std_output,  :aliases => "-o",  :type => :boolean,
                     :desc => "special output for STDOUT (useful for updates)"
 
@@ -22,8 +23,8 @@ module Redmine
         params = {}
 
         params[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to
-
         params[:status_id] = map_status(options.status) if options.status
+        params[:tracker_id] = map_tracker(options.tracker) if options.tracker
 
         params[:project_id] = map_project(options.project) if options.project
 
@@ -134,6 +135,7 @@ module Redmine
       method_option :tickets,     :aliases => "-l",  :desc => "list of tickets", :type => :array
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
       method_option :priority,    :aliases => "-p",  :desc => "id or name of priority for ticket"
+      method_option :tracker,     :aliases => "-T",  :desc => "id or name of tracker for ticket"
       method_option :subject,     :aliases => "-t",  :desc => "subject for ticket (title)"
       method_option :description, :aliases => "-d",  :desc => "description for ticket"
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
@@ -199,6 +201,7 @@ module Redmine
           attributes[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to.present?
           attributes[:status_id]      = map_status(options.status)    if options.status.present?
           attributes[:priority_id]    = map_priority(options.priority)if options.priority.present?
+          attributes[:tracker_id]     = map_tracker(options.tracker)  if options.tracker.present?
 
           attributes
         end
@@ -235,6 +238,14 @@ module Redmine
             say "Failed to fetch users: #{e}", :red
           end
           projects = Project.fetch_all.collect { |project| [ project.identifier, project.id ] }
+        end
+
+        def map_tracker(tracker_name)
+          get_mapping(:tracker_mappings, tracker_name)
+        end
+
+        def get_mapping(mapping, value)
+          return value if value.to_i != 0
 
           priorities = {}
           status = {}

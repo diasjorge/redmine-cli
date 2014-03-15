@@ -13,3 +13,6 @@ status_mappings:
   "rejected": 6
 list_fields:
   - <%= list_fields.join("\n  - ") %>
+tracker_mappings:
+  "bug" : 1
+  "feature": 2
