@@ -1,6 +1,6 @@
 # redmine-cli
 ### A command line interface for redmine
-Because using the broweser is overrated.
+Because using the browser is overrated.
 
 ## Installation
 You first need to have Ruby with RubyGems.
@@ -11,6 +11,8 @@ Then run:
     redmine install
 
   This will create a .redmine file in your home directory. The file is a yaml file which contains our necessary configuration
+
+  During install, you can select the fields that you wish to be displayed, or accept the default (url, status, subject). This list can contain custom
 
 ## Configuration
   Redmine-cli will install a default configuration file. However you can edit it to fit your redmine installation. 
