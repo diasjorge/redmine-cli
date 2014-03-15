@@ -94,7 +94,7 @@ module Redmine
           if projects.any?
             projects.insert(0, ["Id", "Key", "Name"])
             print_table(projects)
-            say "#{projects.count} projects - #{link_to_project}", :yellow
+            say "#{projects.count-1} projects - #{link_to_project}", :yellow
           end
           
       end
@@ -207,8 +207,13 @@ module Redmine
         end
 
         def display_issue(issue)
-          shell.print_wrapped "#{link_to_issue(issue.id)} - #{issue.status.name}"
+          shell.print_wrapped "#{issue.project.name} ##{issue.id} - #{link_to_issue(issue.id)} - #{issue.status.name}"
+          shell.print_wrapped "Priority: #{issue.priority.name}"
+          if issue.attributes[:assigned_to].present?
+            shell.print_wrapped "Assigned To: #{issue.attributes[:assigned_to].name}"
+          end
           shell.print_wrapped "Subject: #{issue.subject}"
+          shell.print_wrapped "Tracker: #{issue.tracker.name}"
           shell.print_wrapped issue.description || "", :ident => 2
         end
 
