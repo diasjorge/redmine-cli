@@ -101,7 +101,7 @@ module Redmine
 
       desc "show TICKET", "Display information of a ticket"
       def show(ticket)
-        issue = Resource.find(ticket)
+        issue = Issue.find(ticket)
 
         display_issue(issue)
       rescue ActiveResource::ResourceNotFound
@@ -231,6 +231,7 @@ module Redmine
         def update_mapping_cache
           say 'Updating mapping cache...', :yellow
           # TODO: Updating user mapping requries Redmine 1.1+
+          # TODO: Retrieving user mapping requires admin privileges in Redmine
           users = []
           begin
             users = User.fetch_all.collect { |user| [ user.login, user.id ] }
@@ -238,14 +239,6 @@ module Redmine
             say "Failed to fetch users: #{e}", :red
           end
           projects = Project.fetch_all.collect { |project| [ project.identifier, project.id ] }
-        end
-
-        def map_tracker(tracker_name)
-          get_mapping(:tracker_mappings, tracker_name)
-        end
-
-        def get_mapping(mapping, value)
-          return value if value.to_i != 0
 
           priorities = {}
           status = {}
@@ -253,7 +246,7 @@ module Redmine
               priorities[issue.priority.name] = issue.priority.id if issue.priority
               status[issue.status.name] = issue.status.id if issue.status
           end
-
+          
           # TODO: Need to determine where to place cache file based on
           #       config file location.
           File.open(File.expand_path('~/.redmine_cache'), 'w') do |out|
@@ -266,17 +259,8 @@ module Redmine
           end
         end
 
-        def get_mapping_from_cache(mapping, value)
-          begin
-            if Redmine::Cli::cache[mapping].nil? || (mapped = Redmine::Cli::cache[mapping][value]).nil?
-              return false
-            end
-            return mapped
-          rescue
-            # We need to recover here from any error that could happen
-            # in case the cache is corrupted.
-            return false
-          end
+        def map_tracker(tracker_name)
+          get_mapping(:tracker_mappings, tracker_name)
         end
 
         def get_mapping(mapping, value)
@@ -299,6 +283,20 @@ module Redmine
 
           return mapped
         end
+
+        def get_mapping_from_cache(mapping, value)
+          begin
+            if Redmine::Cli::cache[mapping].nil? || (mapped = Redmine::Cli::cache[mapping][value]).nil?
+              return false
+            end
+            return mapped
+          rescue
+            # We need to recover here from any error that could happen
+            # in case the cache is corrupted.
+            return false
+          end
+        end
+
 
         def update_ticket(ticket, options)
           issue = Issue.find(ticket)
