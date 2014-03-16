@@ -269,7 +269,7 @@ module Redmine
         end
 
         def update_mapping_cache
-          if not Redmine::Cli::config["disable_caching"]
+          unless Redmine::Cli::config["disable_caching"]
             say 'Updating mapping cache...', :yellow
             # TODO: Updating user mapping requries Redmine 1.1+
             # TODO: Retrieving user mapping requires admin privileges in Redmine
