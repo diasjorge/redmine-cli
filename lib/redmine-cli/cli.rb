@@ -210,6 +210,83 @@ module Redmine
 
       no_tasks do
 
+        # Prints a table.
+        #
+        # ==== Parameters
+        # Array[Array[String, String, ...]]
+        #
+        # ==== Options
+        # indent<Integer>:: Indent the first column by indent value.
+        # colwidth<Integer>:: Force the first column to colwidth spaces wide.
+        #
+        def print_table(array, options = {}) # rubocop:disable MethodLength
+          return if array.empty?
+  
+          formats, indent, colwidth = [], options[:indent].to_i, options[:colwidth]
+          options[:truncate] = terminal_width if options[:truncate] == true
+  
+          formats << "%-#{colwidth + 2}s" if colwidth
+          start = colwidth ? 1 : 0
+  
+          colcount = array.max { |a, b| a.size <=> b.size }.size
+  
+          maximas = []
+  
+          start.upto(colcount - 1) do |index|
+            maxima = array.map { |row|
+              skip = false
+              rowlen = row[index].to_s.bytes.collect { | byte |
+                if byte < 32
+                  skip = true
+                end
+                if byte == 109 && skip == true
+                  skip = false
+                  0
+                  next
+                end
+                #puts "#{byte} #{byte.chr} skip=#{skip}"
+                skip == true ? 0 : 1
+              }.compact.reduce(:+)
+              row[index].present? ? rowlen : 0
+            }.max
+            maximas << maxima
+            if index == colcount - 1
+              # Don't output 2 trailing spaces when printing the last column
+              formats << '%-s'
+            else
+              formats << "%-#{maxima + 2}s"
+            end
+          end
+  
+          formats[0] = formats[0].insert(0, ' ' * indent)
+          formats << '%s'
+
+          puts pp(formats)
+  
+          array.each do |row|
+            sentence = ''
+  
+            row.each_with_index do |column, index|
+              maxima = maximas[index]
+  
+              if column.is_a?(Numeric)
+                if index == row.size - 1
+                  # Don't output 2 trailing spaces when printing the last column
+                  f = "%#{maxima}s"
+                else
+                  f = "%#{maxima}s "
+                end
+              else
+                f = formats[index]
+              end
+              sentence << f % column.to_s
+            end
+  
+            sentence = truncate(sentence, options[:truncate]) if options[:truncate]
+            puts sentence
+          end
+        end
+
         def link_to_issue(id)
           "#{Redmine::Cli::config.url}/issues/#{id}"
         end
@@ -261,7 +338,14 @@ module Redmine
         end
 
         def map_priority(priority_name)
-          get_mapping(:priority_mappings, priority_name)
+          result = get_mapping(:priority_mappings, priority_name)
+          case result
+            when "Low" then result.blue
+            when "Normal" then result.green
+            when "High" then result.red
+            when "Urgent" then result.bold.red
+            when "Immediate" then result.blink.bold.red
+          end
         end
 
         def map_project(project_name)
@@ -373,7 +457,7 @@ module Redmine
             "start_date" => Field.new("Start", "start_date"),
             "estimated_hours" => Field.new("Estd", "estimated_hours"),
             "tracker" => Field.new("Type", "tracker", method(:map_user)),
-            "priority" => Field.new("Priority", "priority", method(:map_user)),
+            "priority" => Field.new("Priority", "priority", method(:map_priority)),
             "description" => Field.new("Description", "description"),
             "assigned_to" => Field.new("Assigned To", "assigned_to", method(:map_user)),
             "project" => Field.new("Project", "project", method(:map_user)),
@@ -391,4 +475,26 @@ module Redmine
       end
     end
   end
+end
+
+class String
+  def black;          "\033[30m#{self}\033[0m" end
+  def red;            "\033[31m#{self}\033[0m" end
+  def green;          "\033[32m#{self}\033[0m" end
+  def brown;          "\033[33m#{self}\033[0m" end
+  def blue;           "\033[34m#{self}\033[0m" end
+  def magenta;        "\033[35m#{self}\033[0m" end
+  def cyan;           "\033[36m#{self}\033[0m" end
+  def gray;           "\033[37m#{self}\033[0m" end
+  def bg_black;       "\033[40m#{self}\0330m"  end
+  def bg_red;         "\033[41m#{self}\033[0m" end
+  def bg_green;       "\033[42m#{self}\033[0m" end
+  def bg_brown;       "\033[43m#{self}\033[0m" end
+  def bg_blue;        "\033[44m#{self}\033[0m" end
+  def bg_magenta;     "\033[45m#{self}\033[0m" end
+  def bg_cyan;        "\033[46m#{self}\033[0m" end
+  def bg_gray;        "\033[47m#{self}\033[0m" end
+  def bold;           "\033[1m#{self}\033[22m" end
+  def blink;          "\033[5m#{self}\033[22m" end
+  def reverse_color;  "\033[7m#{self}\033[27m" end
 end
