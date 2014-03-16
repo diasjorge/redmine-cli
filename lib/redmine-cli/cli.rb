@@ -58,12 +58,15 @@ module Redmine
               end
             rescue IndexError
               # Otherwise, let's look for a custom field by that name.
-              issue.attributes[:custom_fields].collect { | field | 
-                if field.attributes.fetch("name") == key
-                  field.attributes.fetch("value")
-                end
-                #TODO: If the custom field doesn't exist, then we end up returning a blank value (not an error). I guess that's OK?
-              }
+              if issue.attributes[:custom_fields].present?
+                issue.attributes[:custom_fields].collect { | field | 
+                  if field.attributes.fetch("name") == key
+                    field.attributes.fetch("value")
+                  end
+                }
+              end
+              ""
+              #TODO: If the custom field doesn't exist, then we end up returning a blank value (not an error). I guess that's OK?
             end
 
           }}
@@ -139,6 +142,7 @@ module Redmine
       method_option :subject,     :aliases => "-t",  :desc => "subject for ticket (title)"
       method_option :description, :aliases => "-d",  :desc => "description for ticket"
       method_option :assigned_to, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
+      method_option :notes,       :aliases => "-n",  :desc => "an optional note about this update"
       desc "update [TICKETS]", "Update tickets"
       def update(*tickets)
         tickets = options.tickets if tickets.blank? && options.tickets.present?
@@ -202,6 +206,7 @@ module Redmine
           attributes[:status_id]      = map_status(options.status)    if options.status.present?
           attributes[:priority_id]    = map_priority(options.priority)if options.priority.present?
           attributes[:tracker_id]     = map_tracker(options.tracker)  if options.tracker.present?
+          attributes[:notes]          = options.notes                 if options.notes.present?
 
           attributes
         end
