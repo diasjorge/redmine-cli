@@ -62,3 +62,12 @@ You can get help by simpling executing:
 
     redmine edit --description 2
     \# Your editor will pop up, and you can modify the field. The ticket will be updated when you save the file and exit the editor.
+
+## Known Issues
+
+  If you use a non-administrative account, redmine-cli's mapping cache will not be able to retrieve the list of users (you must manually populate the user mappings in this case). Additionally, you'll receive an error like this whenever you try to update an issue:
+
+    Updating mapping cache...
+    Failed to fetch users: Failed.  Response code = 403.  Response message = Forbidden.
+
+  If this happens, you can disable the caching feature by setting "disable_caching": true in ~/.redmine

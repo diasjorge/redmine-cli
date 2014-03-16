@@ -2,6 +2,7 @@ url: "<%= url %>"
 username: "<%= username %>"
 password: "<%= password %>"
 default_project_id: 1
+disable_caching: false
 user_mappings:
   "admin": 1
 status_mappings:

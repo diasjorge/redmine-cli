@@ -269,33 +269,35 @@ module Redmine
         end
 
         def update_mapping_cache
-          say 'Updating mapping cache...', :yellow
-          # TODO: Updating user mapping requries Redmine 1.1+
-          # TODO: Retrieving user mapping requires admin privileges in Redmine
-          users = []
-          begin
-            users = User.fetch_all.collect { |user| [ user.login, user.id ] }
-          rescue Exception => e
-            say "Failed to fetch users: #{e}", :red
-          end
-          projects = Project.fetch_all.collect { |project| [ project.identifier, project.id ] }
-
-          priorities = {}
-          status = {}
-          Issue.fetch_all.each do |issue|
-              priorities[issue.priority.name] = issue.priority.id if issue.priority
-              status[issue.status.name] = issue.status.id if issue.status
-          end
+          if not Redmine::Cli::config["disable_caching"]
+            say 'Updating mapping cache...', :yellow
+            # TODO: Updating user mapping requries Redmine 1.1+
+            # TODO: Retrieving user mapping requires admin privileges in Redmine
+            users = []
+            begin
+              users = User.fetch_all.collect { |user| [ user.login, user.id ] }
+            rescue Exception => e
+              say "Failed to fetch users: #{e}", :red
+            end
+            projects = Project.fetch_all.collect { |project| [ project.identifier, project.id ] }
+  
+            priorities = {}
+            status = {}
+            Issue.fetch_all.each do |issue|
+                priorities[issue.priority.name] = issue.priority.id if issue.priority
+                status[issue.status.name] = issue.status.id if issue.status
+            end
           
-          # TODO: Need to determine where to place cache file based on
-          #       config file location.
-          File.open(File.expand_path('~/.redmine_cache'), 'w') do |out|
-            YAML.dump({
-              :user_mappings => Hash[users],
-              :project_mappings => Hash[projects],
-              :priority_mappings => priorities,
-              :status_mappings => status,
-            }, out)
+            # TODO: Need to determine where to place cache file based on
+            #       config file location.
+            File.open(File.expand_path('~/.redmine_cache'), 'w') do |out|
+              YAML.dump({
+                :user_mappings => Hash[users],
+                :project_mappings => Hash[projects],
+                :priority_mappings => priorities,
+                :status_mappings => status,
+              }, out)
+            end
           end
         end
 
