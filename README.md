@@ -57,3 +57,8 @@ You can get help by simpling executing:
 
     redmine list --status new --std_output | xargs redmine update --asigned_to me --status 3 -l
     \# Note that the last argument of the update command must be -l
+
+  Interactively editing a ticket's fields
+
+    redmine edit --description 2
+    \# Your editor will pop up, and you can modify the field. The ticket will be updated when you save the file and exit the editor.
