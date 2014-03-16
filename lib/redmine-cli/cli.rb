@@ -3,6 +3,8 @@ require 'redmine-cli/field'
 require 'redmine-cli/config'
 require 'redmine-cli/resources'
 require 'redmine-cli/generators/install'
+require 'rubygems'
+require 'interactive_editor'
 require 'yaml'
 require 'pp'
 
@@ -25,7 +27,6 @@ module Redmine
         params[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to
         params[:status_id] = map_status(options.status) if options.status
         params[:tracker_id] = map_tracker(options.tracker) if options.tracker
-
         params[:project_id] = map_project(options.project) if options.project
 
         collection = Issue.fetch_all(params)
@@ -93,13 +94,42 @@ module Redmine
 
       desc "projects", "Lists all projects"
       def projects
-          projects = Project.fetch_all.sort {|i,j| i.name <=> j.name}.collect { |project| [ project.id, project.identifier, project.name ] }
-          if projects.any?
-            projects.insert(0, ["Id", "Key", "Name"])
-            print_table(projects)
-            say "#{projects.count-1} projects - #{link_to_project}", :yellow
+        projects = Project.fetch_all.sort {|i,j| i.name <=> j.name}.collect { |project| [ project.id, project.identifier, project.name ] }
+        if projects.any?
+          projects.insert(0, ["Id", "Key", "Name"])
+          print_table(projects)
+          say "#{projects.count-1} projects - #{link_to_project}", :yellow
+        end
+      end
+
+      method_option :status,      :type => :boolean, :aliases => "-s",  :desc => "id or name of status for ticket"
+      method_option :priority,    :type => :boolean, :aliases => "-p",  :desc => "id or name of priority for ticket"
+      method_option :tracker,     :type => :boolean, :aliases => "-T",  :desc => "id or name of tracker for ticket"
+      method_option :subject,     :type => :boolean, :aliases => "-t",  :desc => "subject for ticket (title)"
+      method_option :description, :type => :boolean, :aliases => "-d",  :desc => "description for ticket"
+      method_option :assigned_to, :type => :boolean, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
+      desc "edit [OPTIONS] TICKET", "Interactively edit the fields of an issue"
+      def edit(ticket)
+        issue = Issue.find(ticket)
+
+        if options.empty?
+          say "You must specify at least one field to edit", :red
+          exit
+        end
+        
+        data = {}
+        options.each { | key, val |
+          data[key] = case issue.attributes[key]
+            when String then issue.attributes[key].to_s.ed
+            else issue.attributes[key].name.to_s.ed
           end
-          
+        }
+
+        update_ticket(ticket, data.with_indifferent_access)
+        #issue = Issue.update({:description => issue.description})
+
+      rescue ActiveResource::ResourceNotFound
+        say "No ticket with number: #{ticket}", :red
       end
 
       desc "show TICKET", "Display information of a ticket"
@@ -199,14 +229,14 @@ module Redmine
         def ticket_attributes(options)
           attributes = {}
 
-          attributes[:subject]        = options.subject               if options.subject.present?
-          attributes[:description]    = options.description           if options.description.present?
-          attributes[:project_id]     = map_project(options.project)  if options.project.present?
-          attributes[:assigned_to_id] = map_user(options.assigned_to) if options.assigned_to.present?
-          attributes[:status_id]      = map_status(options.status)    if options.status.present?
-          attributes[:priority_id]    = map_priority(options.priority)if options.priority.present?
-          attributes[:tracker_id]     = map_tracker(options.tracker)  if options.tracker.present?
-          attributes[:notes]          = options.notes                 if options.notes.present?
+          attributes[:subject]        = options["subject"]               if options["subject"].present?
+          attributes[:description]    = options["description"]           if options["description"].present?
+          attributes[:project_id]     = map_project(options["project"])  if options["project"].present?
+          attributes[:assigned_to_id] = map_user(options["assigned_to"]) if options["assigned_to"].present?
+          attributes[:status_id]      = map_status(options["status"])    if options["status"].present?
+          attributes[:priority_id]    = map_priority(options["priority"])if options["priority"].present?
+          attributes[:tracker_id]     = map_tracker(options["tracker"])  if options["tracker"].present?
+          attributes[:notes]          = options["notes"]                 if options["notes"].present?
 
           attributes
         end
@@ -307,12 +337,12 @@ module Redmine
           end
         end
 
-
         def update_ticket(ticket, options)
           issue = Issue.find(ticket)
           params = ticket_attributes(options)
 
           if issue.update_attributes(params)
+            issue = Issue.find(ticket)
             say "Updated: #{ticket}. Options: #{params.inspect}", :green
             display_issue(issue)
           else
