@@ -19,6 +19,7 @@ module Redmine
       method_option :status,      :aliases => "-s",  :desc => "id or name of status for ticket"
       method_option :project,     :aliases => "-p",  :desc => "project id"
       method_option :version,     :aliases => "-v",  :desc => "the target version"
+      method_option :query,       :aliases => "-q",  :desc => "list issues according to a saved custom query"
       method_option :tracker,      :aliases => "-T",  :desc => "id or name of tracker for ticket"
       method_option :std_output,  :aliases => "-o",  :type => :boolean,
                     :desc => "special output for STDOUT (useful for updates)"
@@ -30,6 +31,7 @@ module Redmine
         params[:status_id] = map_status(options.status) if options.status
         params[:tracker_id] = map_tracker(options.tracker) if options.tracker
         params[:project_id] = map_project(options.project) if options.project
+        params[:query_id] = map_query(options.query) if options.query
 
         collection = Issue.fetch_all(params)
 
@@ -249,7 +251,7 @@ module Redmine
                   0
                   next
                 end
-                puts "#{bytes.to_s} #{char} skip=#{skip}"
+                #puts "#{bytes.to_s} #{char} skip=#{skip}"
                 # FIXME: Unicode characters in most terminal fonts take up somewhere
                 # between 1 and 2 columns. So this isn't exact. (But it's better than nothing)
                 skip == true ? 0 : char.bytes.to_a.length > 1 ? 2 : 1
@@ -366,7 +368,13 @@ module Redmine
           get_mapping(:project_mappings, project_name)
         end
 
+        def map_query(query_name)
+          get_mapping(:query_mappings, query_name)
+        end
+
         def update_mapping_cache
+          #TODO: Need to add "query" to this, for caching the list of queries on the remote redmine
+
           unless Redmine::Cli::config["disable_caching"]
             say 'Updating mapping cache...', :yellow
             # TODO: Updating user mapping requries Redmine 1.1+
