@@ -8,6 +8,8 @@ require 'interactive_editor'
 require 'yaml'
 require 'pp'
 
+$KCODE='u'
+
 module Redmine
   module Cli
     class CLI < Thor
@@ -235,17 +237,22 @@ module Redmine
           start.upto(colcount - 1) do |index|
             maxima = array.map { |row|
               skip = false
-              rowlen = row[index].to_s.bytes.collect { | byte |
-                if byte < 32
+              rowlen = row[index].to_s.chars.collect { | char |
+                # Deal with ASCII escape sequences (skip them), also acknowledge that
+                # a char might consist of more than one byte in the case of unicode characters.
+                bytes = char.bytes.to_a
+                if bytes[0] < 32
                   skip = true
                 end
-                if byte == 109 && skip == true
+                if bytes[0] == 109 && skip == true
                   skip = false
                   0
                   next
                 end
-                #puts "#{byte} #{byte.chr} skip=#{skip}"
-                skip == true ? 0 : 1
+                puts "#{bytes.to_s} #{char} skip=#{skip}"
+                # FIXME: Unicode characters in most terminal fonts take up somewhere
+                # between 1 and 2 columns. So this isn't exact. (But it's better than nothing)
+                skip == true ? 0 : char.bytes.to_a.length > 1 ? 2 : 1
               }.compact.reduce(:+)
               row[index].present? ? rowlen : 0
             }.max
@@ -261,8 +268,6 @@ module Redmine
           formats[0] = formats[0].insert(0, ' ' * indent)
           formats << '%s'
 
-          puts pp(formats)
-  
           array.each do |row|
             sentence = ''
   
@@ -339,12 +344,21 @@ module Redmine
 
         def map_priority(priority_name)
           result = get_mapping(:priority_mappings, priority_name)
-          case result
-            when "Low" then result.blue
-            when "Normal" then result.green
-            when "High" then result.red
-            when "Urgent" then result.bold.red
-            when "Immediate" then result.blink.bold.red
+          if Redmine::Cli::config["colorize"]
+            case result
+              # This is sort of a hack... ANSI sequences make it hard to figure out column lengths.
+              # So we make all fields the same length and with the same number of unprintable ansi
+              # sequence characters.
+  
+              when "Low" then       "Low      ".blue.blue.blue
+              when "Normal" then    "Normal   ".green.green.green
+              when "High" then      "High     ".red.red.red
+              when "Urgent" then    "Urgent   ".bold.red.red
+              when "Immediate" then "Immediate".blink.bold.red
+              else result[0...9]
+            end
+          else
+            result
           end
         end
 
