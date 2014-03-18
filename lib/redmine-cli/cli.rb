@@ -20,9 +20,9 @@ module Redmine
       method_option :project,     :aliases => "-p",  :desc => "project id"
       method_option :version,     :aliases => "-v",  :desc => "the target version"
       method_option :query,       :aliases => "-q",  :desc => "list issues according to a saved custom query"
-      method_option :tracker,      :aliases => "-T",  :desc => "id or name of tracker for ticket"
-      method_option :std_output,  :aliases => "-o",  :type => :boolean,
-                    :desc => "special output for STDOUT (useful for updates)"
+      method_option :tracker,     :aliases => "-T",  :desc => "id or name of tracker for ticket"
+      method_option :std_output,  :aliases => "-o",  :desc => "output a space-delimited list of ticket numbers that match the specified criteria (useful when piped to \"update\" command", :type => :boolean
+      method_option :sort,        :aliases => "-S",  :desc => "sort by the specified column"
 
       def list
         params = {}
@@ -32,6 +32,7 @@ module Redmine
         params[:tracker_id] = map_tracker(options.tracker) if options.tracker
         params[:project_id] = map_project(options.project) if options.project
         params[:query_id] = map_query(options.query) if options.query
+        params[:sort] = options[:sort] if options[:sort]
 
         collection = Issue.fetch_all(params)
 
@@ -373,8 +374,6 @@ module Redmine
         end
 
         def update_mapping_cache
-          #TODO: Need to add "query" to this, for caching the list of queries on the remote redmine
-
           unless Redmine::Cli::config["disable_caching"]
             say 'Updating mapping cache...', :yellow
             # TODO: Updating user mapping requries Redmine 1.1+
@@ -386,6 +385,9 @@ module Redmine
               say "Failed to fetch users: #{e}", :red
             end
             projects = Project.fetch_all.collect { |project| [ project.identifier, project.id ] }
+            queries = Query.fetch_all.collect { |query|
+                    [ query.name, query.id ]
+            }
   
             priorities = {}
             status = {}
@@ -402,6 +404,7 @@ module Redmine
                 :project_mappings => Hash[projects],
                 :priority_mappings => priorities,
                 :status_mappings => status,
+                :query_mappings => Hash[queries],
               }, out)
             end
           end

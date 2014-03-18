@@ -42,6 +42,7 @@ module Redmine
     class Issue   < BaseResource; end
     class User    < BaseResource; end
     class Project < BaseResource; end
+    class Query < BaseResource; end
   end
 end
 
