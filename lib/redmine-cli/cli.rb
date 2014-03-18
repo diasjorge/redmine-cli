@@ -113,6 +113,7 @@ module Redmine
       method_option :subject,     :type => :boolean, :aliases => "-t",  :desc => "subject for ticket (title)"
       method_option :description, :type => :boolean, :aliases => "-d",  :desc => "description for ticket"
       method_option :assigned_to, :type => :boolean, :aliases => "-a",  :desc => "id or user name of person the ticket is assigned to"
+      method_option :notes,       :type => :boolean, :aliases => "-n",  :desc => "add a note to the Redmine ticket (interactively)"
       desc "edit [OPTIONS] TICKET", "Interactively edit the fields of an issue"
       def edit(ticket)
         issue = Issue.find(ticket)
@@ -124,9 +125,14 @@ module Redmine
         
         data = {}
         options.each { | key, val |
-          data[key] = case issue.attributes[key]
-            when String then issue.attributes[key].to_s.ed
-            else issue.attributes[key].name.to_s.ed
+          case key
+          when "notes" then
+            data[key] = "Enter your note here.\n\n".ed
+          else
+            data[key] = case issue.attributes[key]
+              when String then issue.attributes[key].to_s.ed
+              else issue.attributes[key].name.to_s.ed
+            end
           end
         }
 
@@ -139,7 +145,10 @@ module Redmine
 
       desc "show TICKET", "Display information of a ticket"
       def show(ticket)
-        issue = Issue.find(ticket)
+        params = {}
+        params[:params] = {:include => "journals,changesets"}
+
+        issue = Issue.find(ticket, params)
 
         display_issue(issue)
       rescue ActiveResource::ResourceNotFound
@@ -334,7 +343,21 @@ module Redmine
           end
           shell.print_wrapped "Subject: #{issue.subject}"
           shell.print_wrapped "Tracker: #{issue.tracker.name}"
-          shell.print_wrapped issue.description || "", :ident => 2
+          shell.print_wrapped issue.description || "", :indent => 2
+          if issue.journals.any?
+            issue.journals.each do |journal|
+              details = journal.details.collect do |detail|
+                unless detail.name == "description"
+                  "#{detail.name}: #{detail.old_value} => #{detail.new_value}"
+                else
+                  # Multi-line descriptions can make output unreadable.
+                  "#{detail.name} updated"
+                end
+              end
+              shell.print_wrapped "Updated by #{journal.user.name} on #{journal.created_on} (#{details})"
+              shell.print_wrapped "#{journal.notes}\n\n###".bold, :indent => 2 if journal.notes.present?
+            end
+          end
         end
 
         def map_user(user_name)
@@ -453,7 +476,8 @@ module Redmine
           params = ticket_attributes(options)
 
           if issue.update_attributes(params)
-            issue = Issue.find(ticket)
+            params[:params] = {:include => "journals,changesets"}
+            issue = Issue.find(ticket, params)
             say "Updated: #{ticket}. Options: #{params.inspect}", :green
             display_issue(issue)
           else
