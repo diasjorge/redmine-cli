@@ -36,7 +36,7 @@ module Redmine
 
         collection = Issue.fetch_all(params)
 
-        selected_fields = Redmine::Cli::config.list_fields
+        selected_fields = Redmine::Cli::config.list_fields || ["url", "subject", "status"]
 
         unless options.std_output
           # collection.sort! {|i,j| i.status.id <=> j.status.id }
