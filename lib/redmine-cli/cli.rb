@@ -125,19 +125,30 @@ module Redmine
         
         data = {}
         options.each { | key, val |
-          case key
-          when "notes" then
-            data[key] = "Enter your note here.\n\n".ed
-          else
-            data[key] = case issue.attributes[key]
-              when String then issue.attributes[key].to_s.ed
-              else issue.attributes[key].name.to_s.ed
-            end
+          # Set the initial value to one of:
+          #   The direct string representation of the issue's key
+          #   The value of the issue's key's "name" member
+          #   A multi-line string initialized to a message appropriate to the value (most useful for "notes" and "description")
+          initialval = issue.attributes.has_key?(key) && ! issue.attributes[key].nil? ? case issue.attributes[key]
+            when String then issue.attributes[key].to_s
+            else issue.attributes[key].name.to_s
+          end : "Enter your #{key} here.\n\n"
+
+          data[key] = initialval.clone.ed
+
+          if data[key] == initialval
+            # If the user didn't actually edit the field, then don't submit it for update.
+            say "You did not change the value, so the edit to #{key} was ignored.", :red 
+            data.delete(key)
           end
         }
 
-        update_ticket(ticket, data.with_indifferent_access)
-        #issue = Issue.update({:description => issue.description})
+        unless data.empty?
+          update_ticket(ticket, data.with_indifferent_access)
+        else
+          say "There was no new data to submit, so #{ticket} was not updated.", :red
+        end
+
 
       rescue ActiveResource::ResourceNotFound
         say "No ticket with number: #{ticket}", :red
