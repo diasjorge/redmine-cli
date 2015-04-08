@@ -32,6 +32,9 @@ module Redmine
           while((fetched_resources = self.all(:params => params.merge({:limit => limit, :offset => offset}))).any?)
             resources += fetched_resources
             offset    += limit
+            if fetched_resources.length < limit then
+              break
+            end
           end
 
           resources
