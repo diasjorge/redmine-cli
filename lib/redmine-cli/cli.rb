@@ -4,6 +4,7 @@ require 'redmine-cli/config'
 require 'redmine-cli/resources'
 require 'redmine-cli/generators/install'
 require 'rubygems'
+require 'ruby-debug'
 require 'interactive_editor'
 require 'yaml'
 require 'pp'
@@ -43,39 +44,51 @@ module Redmine
           collection.sort! {|i,j| i.priority.id <=> j.priority.id }
           
           # Retrieve the list of issue fields in selected_fields
-          issues = collection.collect { |issue| selected_fields.collect {| key |
+          issues = collection.collect { |issue|
+            selected_fields.collect {|key|
 
-            assignee = ""
-            assignee = issue.assigned_to.name if issue.respond_to?(:assigned_to)
-            version = issue.fixed_version.name if issue.respond_to?(:fixed_version)
-
-            # Hack, because I don't feel like spending much time on this
-            next unless version == options.version
-
-            begin
-              # If this is a built-in field for which we have a title, ref, and display method, use that.
-              field = fields.fetch(key)
-              if field.display
-                value = issue.attributes.fetch(field.ref)
-                field.display.call(value)
-              else
-                f = fields.fetch(key).ref
-                issue.attributes.fetch(f)
+              assignee = ""
+              assignee = issue.assigned_to.name if issue.respond_to?(:assigned_to)
+              version = issue.fixed_version.name if issue.respond_to?(:fixed_version)
+  
+              # Hack, because I don't feel like spending much time on this
+              if options.version
+                next unless version == options.version
               end
-            rescue IndexError
-              # Otherwise, let's look for a custom field by that name.
-              if issue.attributes[:custom_fields].present?
-                issue.attributes[:custom_fields].collect { | field | 
-                  if field.attributes.fetch("name") == key
-                    field.attributes.fetch("value")
-                  end
-                }
-              end
-              ""
-              #TODO: If the custom field doesn't exist, then we end up returning a blank value (not an error). I guess that's OK?
-            end
 
-          }}
+              # This section tries to fill in the field using various methods. First, we try to reference it as a built-in field for which we have a title, ref, and display method.
+              # If we don't have that, then we try to reference it as an attribute of the issue object.
+              # If at any point we try to reference something that gives us an IndexError, we assume that that is not a native field, and we try to look through the custom fields to find it.
+              # Finally, if that fails, we let the value simply be "".
+              #
+              val = ""
+  
+              begin
+                # If this is a built-in field for which we have a title, ref, and display method, use that.
+                field = fields.fetch(key)
+                if field.display
+                  value = issue.attributes.fetch(field.ref)
+                  val = field.display.call(value)
+                else
+                  f = fields.fetch(key).ref
+                  val = issue.attributes.fetch(f)
+                end
+              rescue IndexError
+                # Otherwise, let's look for a custom field by that name.
+                if issue.attributes[:custom_fields].present?
+                  issue.attributes[:custom_fields].collect { | field | 
+                    if field.attributes.fetch("name") == key
+                      val = field.attributes.fetch("value")
+                    end
+                  }
+                end
+                ""
+
+              end
+
+              val
+            }
+          }
 
           if issues.any?
             issues.insert(0, selected_fields.collect {| key |
