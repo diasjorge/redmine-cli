@@ -461,6 +461,10 @@ module Redmine
           get_mapping(:tracker_mappings, tracker_name)
         end
 
+        def map_version(fixed_version)
+          get_mapping(:version_mappings, fixed_version)
+        end
+
         def get_mapping(mapping, value)
           begin
             return value if value.to_i != 0
@@ -539,6 +543,7 @@ module Redmine
             "due_date" => Field.new("Due On", "due_date"),
             "created_on" => Field.new("Created On", "created_on"),
             "updated_on" => Field.new("Updated On", "updated_on"),
+            "version" => Field.new("Version", "fixed_version", method(:map_version)),
           }
         end
 
