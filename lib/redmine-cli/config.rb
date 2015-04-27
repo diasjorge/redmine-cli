@@ -3,13 +3,16 @@ require 'yaml'
 
 module Redmine
   module Cli
+    class NoConfigFileError < StandardError
+    end
+
     class << self
 
       def config
         begin
           generic_conf '.redmine'
         rescue Errno::ENOENT
-          puts "You need to create the file .redmine in your home with your username, password and url"
+          raise NoConfigFileError
           exit 1
         end
       end
